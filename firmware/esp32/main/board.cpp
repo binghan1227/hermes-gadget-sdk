@@ -578,6 +578,12 @@ BoardConfig make() {
   b.latch_power.enabled = true;
   b.latch_power.adc = 3;
   b.latch_power.mv_ratio = 4;  // (62 k + 20 k) / 20 k = 4.1, rounded down as the BSP does
+  // The BSP's PCA9535 inputs, all active low: P0.0 CHRG and P0.1 STDBY from the charger,
+  // P0.2 USB 5 V present, P1.5 battery fitted.
+  b.latch_power.expander_charging = 0x0001;
+  b.latch_power.expander_full = 0x0002;
+  b.latch_power.expander_vbus = 0x0004;
+  b.latch_power.expander_battery = 0x2000;
   b.talk_label = "Hold screen";
   b.cancel_label = "Wheel button";
   return b;

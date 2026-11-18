@@ -11,7 +11,7 @@ bool g_pca9535 = false;
 uint16_t g_power_hold = 0;
 
 // PCA9535 registers come in pairs, port 0 then port 1; a two-byte access covers both.
-constexpr uint8_t kPca9535Output = 2, kPca9535Config = 6;
+constexpr uint8_t kPca9535Input = 0, kPca9535Output = 2, kPca9535Config = 6;
 
 bool pca9535_read(i2c_master_dev_handle_t dev, uint8_t reg, uint16_t& value) {
   uint8_t data[2] = {};
@@ -171,6 +171,13 @@ void tca9554_backlight(uint8_t percent) {
   if (next != output && !reg_write(g_levels, 1, next)) {
     ESP_LOGW("hg.tca9554", "backlight update failed");
   }
+}
+
+std::optional<uint16_t> expander_inputs() {
+  if (!g_levels || !g_pca9535) return std::nullopt;
+  uint16_t value = 0;
+  if (!pca9535_read(g_levels, kPca9535Input, value)) return std::nullopt;
+  return value;
 }
 
 bool expander_power_off() {

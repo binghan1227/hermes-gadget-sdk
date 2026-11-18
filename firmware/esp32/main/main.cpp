@@ -384,6 +384,7 @@ extern "C" void app_main(void) {
                             hgp::tca9554_levels_begin(hgp::i2c::bus(board.i2c), board.expander_levels);
   const bool latch_power = board.latch_power.enabled && g_latch_power.begin(board.latch_power);
   if (early_levels && board.expander_levels.power_hold) g_latch_power.board_power_off = [] { return hgp::expander_power_off(); };
+  if (early_levels) g_latch_power.board_inputs = [] { return hgp::expander_inputs(); };
 #endif
   const char* version = esp_app_get_description()->version;
   ESP_LOGI(TAG, "Hermes Gadget %s on %s", version, board.name);
@@ -422,7 +423,7 @@ extern "C" void app_main(void) {
   hal.storage = &g_storage;
 #if !CONFIG_HG_BOARD_ESP32_CYD
   if (latch_power) hal.power = &g_latch_power;
-  if (latch_power && board.latch_power.usb_external_power)
+  if (latch_power && (board.latch_power.usb_external_power || board.latch_power.expander_vbus))
     g_wifi.on_battery = [] { return g_latch_power.external_power() == std::optional<bool>(false); };
 #endif
   if (g_updater.capacity()) hal.updater = &g_updater;

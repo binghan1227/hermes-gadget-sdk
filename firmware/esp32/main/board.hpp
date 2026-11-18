@@ -335,6 +335,11 @@ struct LatchPowerConfig {
   // A power key on a GPIO, active low: a short press turns the screen off and on,
   // holding it for LatchPower::kKeyHoldMs releases the latch (power off on battery).
   int key = -1;
+  // Status pins on an I/O expander rather than ESP32 pins, read through
+  // LatchPower::board_inputs: bit masks of active-low PCA9535 inputs, 0 = absent.
+  // The SenseCAP Watcher's charger drives CHRG low while charging and STDBY low once
+  // the cell is full; VBUS is low while USB supplies 5 V; BAT is low with a cell fitted.
+  uint16_t expander_charging = 0, expander_full = 0, expander_vbus = 0, expander_battery = 0;
 };
 
 // A microSD slot wired for 4-bit SDIO (port_sdlog.cpp mirrors the device log

@@ -78,7 +78,8 @@ std::optional<hg::PowerStatus> LatchPower::read() {
   hg::PowerStatus status;
   // Not every board brings the charging signal out to a pin.
   if (cfg_.charging >= 0) status.charging = charging_signal();
-  status.external_power = external_power();
+  if (has_expander_signals()) read_expander(status);
+  else status.external_power = external_power();
   if (!calibration_) return status;
   int total = 0;
   for (int i = 0; i < 8; ++i) {
@@ -101,7 +102,32 @@ bool LatchPower::charging_signal() const {
   return gpio_get_level(static_cast<gpio_num_t>(cfg_.charging)) == (cfg_.charging_active_high ? 1 : 0);
 }
 
+bool LatchPower::has_expander_signals() const {
+  return board_inputs && (cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus | cfg_.expander_battery);
+}
+
+void LatchPower::read_expander(hg::PowerStatus& status) {
+  if (!has_expander_signals()) return;
+  const auto inputs = board_inputs();
+  if (!inputs) return;  // unknown this time, never the previous reading
+  const uint16_t used = cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus | cfg_.expander_battery;
+  if ((*inputs & used) != last_inputs_) {
+    last_inputs_ = *inputs & used;
+    ESP_LOGI("hg.power", "expander status pins 0x%04x (active low)", static_cast<unsigned>(last_inputs_));
+  }
+  const auto low = [&](uint16_t mask) { return (*inputs & mask) == 0; };
+  // A finished charge reports STDBY low; CHRG is high again by then.
+  if (cfg_.expander_charging)
+    status.charging = low(cfg_.expander_charging) && !(cfg_.expander_full && low(cfg_.expander_full));
+  if (cfg_.expander_vbus) status.external_power = low(cfg_.expander_vbus);
+  if (cfg_.expander_battery) status.battery_present = low(cfg_.expander_battery);
+}
+
 std::optional<bool> LatchPower::external_power() {
+  if (cfg_.expander_vbus && board_inputs) {
+    if (const auto inputs = board_inputs()) return (*inputs & cfg_.expander_vbus) == 0;
+    return std::nullopt;
+  }
   if (!cfg_.usb_external_power) return std::nullopt;
   return (cfg_.charging >= 0 && charging_signal()) || usb_serial_jtag_is_connected();
 }

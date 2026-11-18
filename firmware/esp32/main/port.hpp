@@ -475,6 +475,10 @@ void tca9554_backlight(uint8_t percent);
 // Drives ExpanderLevelConfig::power_hold low (a PCA9535 board's battery supply latch).
 // False when no latch was configured or the write failed.
 bool expander_power_off();
+// The PCA9535's input register, port 0 in the low byte and port 1 in the high byte
+// (the SenseCAP Watcher's charger and USB status pins). Nullopt before
+// tca9554_levels_begin set up a PCA9535, or when the read fails.
+std::optional<uint16_t> expander_inputs();
 
 namespace i2c {
 // The board's shared I2C master bus (created on first use).
@@ -829,9 +833,16 @@ class LatchPower final : public hg::Power {
   // A supply latch that isn't an ESP32 pin (the SenseCAP Watcher's PCA9535 P1.2).
   // Used by power_off() when the config has no enable pin; set it before the app starts.
   std::function<bool()> board_power_off;
+  // The input pins of an expander holding the LatchPowerConfig::expander_* signals.
+  // Set it before the app starts; without it those signals stay unread.
+  std::function<std::optional<uint16_t>()> board_inputs;
 
  private:
   bool charging_signal() const;
+  bool has_expander_signals() const;
+  // Charging, USB power and battery presence from the expander's pins, when it answers.
+  void read_expander(hg::PowerStatus& status);
+  int32_t last_inputs_ = -1;  // the status pins at the last read, logged when they change
   LatchPowerConfig cfg_{};
   bool key_down_ = false, key_held_ = false;
   int64_t key_since_ms_ = 0;
