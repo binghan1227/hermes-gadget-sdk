@@ -840,7 +840,7 @@ class LatchPower final : public hg::Power {
  private:
   bool charging_signal() const;
   bool has_expander_signals() const;
-  // Charging, USB power and battery presence from the expander's pins, when it answers.
+  // Charging and USB power from the expander's pins, when it answers.
   void read_expander(hg::PowerStatus& status);
   int32_t last_inputs_ = -1;  // the status pins at the last read, logged when they change
   LatchPowerConfig cfg_{};

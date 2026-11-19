@@ -103,14 +103,14 @@ bool LatchPower::charging_signal() const {
 }
 
 bool LatchPower::has_expander_signals() const {
-  return board_inputs && (cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus | cfg_.expander_battery);
+  return board_inputs && (cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus);
 }
 
 void LatchPower::read_expander(hg::PowerStatus& status) {
   if (!has_expander_signals()) return;
   const auto inputs = board_inputs();
   if (!inputs) return;  // unknown this time, never the previous reading
-  const uint16_t used = cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus | cfg_.expander_battery;
+  const uint16_t used = cfg_.expander_charging | cfg_.expander_full | cfg_.expander_vbus;
   if ((*inputs & used) != last_inputs_) {
     last_inputs_ = *inputs & used;
     ESP_LOGI("hg.power", "expander status pins 0x%04x (active low)", static_cast<unsigned>(last_inputs_));
@@ -120,7 +120,6 @@ void LatchPower::read_expander(hg::PowerStatus& status) {
   if (cfg_.expander_charging)
     status.charging = low(cfg_.expander_charging) && !(cfg_.expander_full && low(cfg_.expander_full));
   if (cfg_.expander_vbus) status.external_power = low(cfg_.expander_vbus);
-  if (cfg_.expander_battery) status.battery_present = low(cfg_.expander_battery);
 }
 
 std::optional<bool> LatchPower::external_power() {
