@@ -668,7 +668,7 @@ TEST("battery curve: replaying the Watcher's discharge, it never rises and track
   CHECK_EQ(last, 0);
 }
 
-TEST("charge curve: replaying the Watcher's charge, it never falls and holds 93 on the last stretch") {
+TEST("charge curve: replaying the Watcher's charge, it never falls and ends at 93 until the charger finishes") {
   hg::BatteryPercent percent(hg::kWatcherCurve, hg::kWatcherChargeCurve);
   int last = -1, worst = 0, total = 0, n = 0;
   uint32_t prev = 0;
