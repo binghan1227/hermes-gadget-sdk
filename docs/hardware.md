@@ -251,7 +251,7 @@ settings menu releases the battery latch; on USB power the board keeps running.
 | PCA9535 supplies | Driven high at boot: P1.1 LCD, P1.2 system (the battery latch), P1.4 codec and amplifier, P1.7 battery divider. Left off: P1.0 microSD, P1.3 Himax AI chip, P1.6 Grove |
 | Audio | ES8311 (0x18) speaker; ES7243E (0x14) microphone in the right I2S slot; MCLK 10, BCLK 11, WS 12, microphone DIN 15, speaker DOUT 16 |
 | Wheel | GPIO 41 (B) and 42 (A), swapped from the BSP so the scroll goes the way the owner expected; quadrature, a detent every two steps. `diag` counts its edges and detents under `touch.encoder` |
-| Battery | ADC GPIO 3 through a 62 k/20 k divider (ratio 4, as Seeed's BSP rounds it, so readings are about 2.5% low); voltage is reported, charge state is not |
+| Battery | ADC GPIO 3 through a 62 k/20 k divider (ratio 4, as Seeed's BSP rounds it, so readings are about 2.5% low). Charger status on PCA9535 inputs, all active low: P0.0 CHRG (charging), P0.1 STDBY (charge finished), P0.2 USB 5 V present. P1.5, the BSP's battery-detect pin, is not read: it reported no battery with the cell fitted |
 
 The pin table is checked against Seeed's
 [SenseCAP Watcher v1.0 schematic](https://github.com/Seeed-Studio/OSHW-SenseCAP-Watcher/blob/3ca69aefa8441f57d38993a39df714048633d032/Hardware/SenseCAP_Watcher_v1.0_SCH.pdf),
@@ -294,6 +294,21 @@ For simulator coverage use `hermes-gadget sim --board sim-412x412-round`.
 Compilation and simulation are not physical verification; keep this profile
 experimental until the checklist in [hardware validation](hardware-validation.md)
 has been completed for the exact W1-A revision.
+
+The battery percentage follows discharge and charge curves measured on one
+Watcher's cell (`kWatcherPoints` and `kWatcherChargePoints` in
+`firmware/drivers/battery_curve.hpp`). While charging it climbs with the charge
+curve; over the last quarter hour the voltage no longer moves, so it stops at
+87 to 93 until the charger reports the charge finished and it shows 100.
+
+### First flash: what to check
+
+1. **Boot log:** `PCA9535 0x21 levels ready (high 0x9600 low 0x4900)`, then `battery sense enabled; calibrated voltage available` and `expander status pins 0x....`. Later `spd2010 412x412 ready`, `codecs: speaker ready, microphones ready (es7243e)` and `touch ready, key ready, encoder ready`. `PCA9535 0x21: ... failed` means the expander didn't answer: the screen and codec stay unpowered, and on battery the board turns off once you let go of the wheel.
+2. **`hermes-gadget diag`:** parts `display spd2010`, `microphone es7243e`, `speaker es8311`, `touch true`, `key true`; I2C devices `0x14`, `0x18`, `0x21` and `0x51` on the general bus (the touch controller, 0x53, is on its own bus and isn't listed).
+3. **Screen and touch:** the face is upright and centred in the round glass. Holding the screen records, a swipe down cancels, and a hold started straight after boot stays one hold.
+4. **Wheel:** each detent moves one step, in the direction you expect; pressing it cancels. `diag` counts its edges and detents under `touch.encoder`.
+5. **Microphone and speaker:** hold the screen and speak; Hermes's transcript is right and the reply is clear (`set volume 80`).
+6. **Power:** on USB with the cell charging, the log line reads `expander status pins 0x0002`, and `status` shows `power` with `battery_mv`, `battery_percent`, `charging: true` and `external_power: true`. Unplugged, both turn false within a few seconds; once a charge finishes on USB, `charging` turns false and the device plays its charged chime. **Power off** in settings turns the device off on battery.
 
 ## Waveshare ESP32-S3-Touch-LCD-1.47
 
