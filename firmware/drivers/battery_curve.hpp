@@ -106,6 +106,31 @@ inline constexpr CurvePoint kStopWatchChargePoints[] = {
 inline constexpr Curve kStopWatchChargeCurve{kStopWatchChargePoints,
                                              sizeof(kStopWatchChargePoints) / sizeof(kStopWatchChargePoints[0])};
 
+// The SenseCAP Watcher W1-A's cell: one full discharge, 4 h 22 min from unplugging
+// at full (the charger's STDBY) to the last reading before shutdown at 2820 mV, on
+// Wi-Fi with light use and the screen mostly idle. Percent = share of the time left;
+// voltage = median of the 11 readings (30 s apart) around that time. The millivolts
+// are the firmware's own reading, the ADC times 4 where the divider is 4.1, so they
+// sit about 2.5% under the cell's: the charger's end, about 4.13 V, reads 4028.
+inline constexpr CurvePoint kWatcherPoints[] = {
+    {3968, 100}, {3944, 98}, {3904, 95}, {3848, 90}, {3788, 85}, {3736, 80}, {3688, 75}, {3636, 70}, {3588, 65},
+    {3532, 60},  {3496, 55}, {3472, 50}, {3444, 45}, {3432, 40}, {3420, 35}, {3396, 30}, {3384, 25}, {3364, 20},
+    {3320, 15},  {3280, 10}, {3256, 7},  {3236, 5},  {3176, 3},  {3108, 2},  {2996, 1},  {2924, 0},
+};
+inline constexpr Curve kWatcherCurve{kWatcherPoints, sizeof(kWatcherPoints) / sizeof(kWatcherPoints[0])};
+
+// The same cell charging from that shutdown on USB: 2 h 05 min from plugging in at
+// 3144 mV to the charger's STDBY. Percent = share of that time; voltage as above.
+// The voltage reaches 4020-4028 at 86% of the time and stays there, so the last
+// stretch shows 87 to 93 until STDBY gives 100. The 99 point is above any reading.
+inline constexpr CurvePoint kWatcherChargePoints[] = {
+    {4032, 99}, {4028, 93}, {4020, 87}, {4000, 85}, {3952, 82}, {3908, 78}, {3852, 74}, {3808, 70}, {3768, 66},
+    {3724, 62}, {3688, 58}, {3656, 54}, {3628, 50}, {3608, 46}, {3592, 42}, {3552, 38}, {3540, 34}, {3532, 30},
+    {3512, 26}, {3496, 22}, {3488, 18}, {3460, 14}, {3432, 10}, {3408, 6},  {3384, 4},  {3336, 2},  {3144, 0},
+};
+inline constexpr Curve kWatcherChargeCurve{kWatcherChargePoints,
+                                           sizeof(kWatcherChargePoints) / sizeof(kWatcherChargePoints[0])};
+
 // What the device shows, from readings every few seconds, with the median of the
 // last kWindow voltages (about a minute) on the curve for the direction of flow:
 // - on battery, the discharge curve, never rising: a lighter load lifts the

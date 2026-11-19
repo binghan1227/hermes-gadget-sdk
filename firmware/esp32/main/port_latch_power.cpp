@@ -95,6 +95,16 @@ std::optional<hg::PowerStatus> LatchPower::read() {
   const int ratio = cfg_.mv_ratio > 0 ? cfg_.mv_ratio : 1;
   const int battery_mv = mv * ratio;
   if (mv >= 0 && battery_mv <= cfg_.max_battery_mv) status.battery_mv = static_cast<uint16_t>(battery_mv);
+  // A measured curve gives the percent, on the charge curve while charging. Without a
+  // charging signal this read (the expander didn't answer), skip it rather than guess.
+  if (percent_ && status.battery_mv) {
+    using Charge = hg::BatteryPercent::Charge;
+    std::optional<Charge> charge;
+    if (full_) charge = Charge::Done;
+    else if (status.charging) charge = *status.charging ? Charge::Charging : Charge::Discharging;
+    else if (cfg_.charging < 0 && !cfg_.expander_charging) charge = Charge::Discharging;
+    if (charge) status.battery_percent = percent_->update(*status.battery_mv, *charge, std::nullopt);
+  }
   return status;
 }
 
@@ -107,6 +117,7 @@ bool LatchPower::has_expander_signals() const {
 }
 
 void LatchPower::read_expander(hg::PowerStatus& status) {
+  full_ = false;
   if (!has_expander_signals()) return;
   const auto inputs = board_inputs();
   if (!inputs) return;  // unknown this time, never the previous reading
@@ -116,6 +127,7 @@ void LatchPower::read_expander(hg::PowerStatus& status) {
     ESP_LOGI("hg.power", "expander status pins 0x%04x (active low)", static_cast<unsigned>(last_inputs_));
   }
   const auto low = [&](uint16_t mask) { return (*inputs & mask) == 0; };
+  full_ = cfg_.expander_full && low(cfg_.expander_full);
   // A finished charge reports STDBY low; CHRG is high again by then.
   if (cfg_.expander_charging)
     status.charging = low(cfg_.expander_charging) && !(cfg_.expander_full && low(cfg_.expander_full));

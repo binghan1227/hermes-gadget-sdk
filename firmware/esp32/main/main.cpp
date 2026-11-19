@@ -422,7 +422,10 @@ extern "C" void app_main(void) {
   hal.transport = &g_transport;
   hal.storage = &g_storage;
 #if !CONFIG_HG_BOARD_ESP32_CYD
-  if (latch_power) hal.power = &g_latch_power;
+  if (latch_power) {
+    hal.power = &g_latch_power;
+    g_latch_power.use_curves(board.battery_curve, board.battery_charge_curve);
+  }
   if (latch_power && (board.latch_power.usb_external_power || board.latch_power.expander_vbus))
     g_wifi.on_battery = [] { return g_latch_power.external_power() == std::optional<bool>(false); };
 #endif

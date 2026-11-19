@@ -836,6 +836,11 @@ class LatchPower final : public hg::Power {
   // The input pins of an expander holding the LatchPowerConfig::expander_* signals.
   // Set it before the app starts; without it those signals stay unread.
   std::function<std::optional<uint16_t>()> board_inputs;
+  // The board's measured discharge and charge curves; without a discharge curve the
+  // app keeps its own estimate (the battery_estimate setting).
+  void use_curves(hg::Curve discharge, hg::Curve charge) {
+    if (discharge) percent_.emplace(discharge, charge);
+  }
 
  private:
   bool charging_signal() const;
@@ -843,6 +848,8 @@ class LatchPower final : public hg::Power {
   // Charging and USB power from the expander's pins, when it answers.
   void read_expander(hg::PowerStatus& status);
   int32_t last_inputs_ = -1;  // the status pins at the last read, logged when they change
+  bool full_ = false;         // the charger reported a finished charge at the last read
+  std::optional<hg::BatteryPercent> percent_;
   LatchPowerConfig cfg_{};
   bool key_down_ = false, key_held_ = false;
   int64_t key_since_ms_ = 0;

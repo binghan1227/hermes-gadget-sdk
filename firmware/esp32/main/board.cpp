@@ -584,6 +584,8 @@ BoardConfig make() {
   b.latch_power.expander_charging = 0x0001;
   b.latch_power.expander_full = 0x0002;
   b.latch_power.expander_vbus = 0x0004;
+  b.battery_curve = hg::kWatcherCurve;
+  b.battery_charge_curve = hg::kWatcherChargeCurve;
   b.talk_label = "Hold screen";
   b.cancel_label = "Wheel button";
   return b;
